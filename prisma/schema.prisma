@@ -1,0 +1,485 @@
+// Palmas TO / gta5modsfivem — schema do banco (MySQL / MariaDB)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------- Usuários
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String     @db.VarChar(80)
+  email        String     @unique @db.VarChar(190)
+  passwordHash String     @db.VarChar(100)
+  role         Role       @default(USER)
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  sessions     Session[]
+  resetTokens  PasswordResetToken[]
+  orders       Order[]
+  entitlements Entitlement[]
+  favorites    Favorite[]
+  reviews      Review[]
+  comments     Comment[]
+  downloads    Download[]
+  auditLogs    AuditLog[]
+  suggestions  Suggestion[]
+}
+
+model Session {
+  id        String   @id @db.VarChar(64) // SHA-256 do token do cookie
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userAgent String?  @db.VarChar(255)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique @db.VarChar(64)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+// ---------------------------------------------------------------- Catálogo
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String     @db.VarChar(80)
+  slug        String     @unique @db.VarChar(90)
+  description String?    @db.Text
+  icon        String?    @db.VarChar(40) // nome do ícone interno
+  imageUrl    String?    @db.VarChar(500)
+  sortOrder   Int        @default(0)
+  active      Boolean    @default(true)
+  parentId    String?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[] @relation("CategoryTree")
+  products    Product[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Tag {
+  id       String       @id @default(cuid())
+  name     String       @db.VarChar(50)
+  slug     String       @unique @db.VarChar(60)
+  products ProductTag[]
+}
+
+model ProductTag {
+  productId String
+  tagId     String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([productId, tagId])
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  UNPUBLISHED
+}
+
+enum PricingType {
+  FREE
+  PAID
+}
+
+// Como a compra/distribuição acontece
+enum CheckoutType {
+  NONE            // gratuito: download direto no site
+  INFINITEPAY     // pago pelo Checkout Integrado InfinitePay, entrega pelo site
+  TEBEX           // venda externa pela Tebex (link)
+  CFX_MARKETPLACE // venda externa pelo Cfx Marketplace (link)
+  EXTERNAL_LINK   // outro link externo informado pelo administrador
+}
+
+// Como o cliente recebe o produto
+enum DeliveryType {
+  SITE_FILE   // arquivo armazenado de forma privada no site
+  EXTERNAL    // entrega feita pela plataforma externa (Tebex/Keymaster/Escrow)
+  MANUAL      // entrega manual pelo administrador (ex.: via Discord)
+}
+
+// Revisão de conformidade (regras Cfx/FiveM/Rockstar) antes de vender pela InfinitePay
+enum ComplianceStatus {
+  NOT_REVIEWED
+  REVIEWED_OK
+  BLOCKED
+}
+
+model Product {
+  id               String           @id @default(cuid())
+  slug             String           @unique @db.VarChar(140)
+  title            String           @db.VarChar(120)
+  shortDescription String?          @db.VarChar(300)
+  description      String?          @db.Text
+  coverImage       String?          @db.VarChar(500)
+  videoUrl         String?          @db.VarChar(500)
+  categoryId       String?
+  category         Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  authorName       String?          @db.VarChar(120)
+  credits          String?          @db.Text
+  licenseName      String?          @db.VarChar(120)
+  licenseText      String?          @db.Text
+
+  status           ProductStatus    @default(DRAFT)
+  pricingType      PricingType      @default(FREE)
+  priceCents       Int?
+  promoPriceCents  Int?
+  promoEndsAt      DateTime?
+  checkoutType     CheckoutType     @default(NONE)
+  deliveryType     DeliveryType     @default(SITE_FILE)
+  externalUrl      String?          @db.VarChar(500)
+  requireLogin     Boolean          @default(false) // exigir conta para baixar gratuito
+  complianceStatus ComplianceStatus @default(NOT_REVIEWED)
+  complianceNotes  String?          @db.Text
+
+  // Compatibilidade: só exibir o que foi informado
+  compatibility    String?          @db.VarChar(200) // ex.: "FiveM", "GTA V singleplayer"
+  frameworks       String?          @db.VarChar(200) // separados por vírgula (ex.: "QBCore, ESX")
+  gameBuild        String?          @db.VarChar(100)
+  requirements     String?          @db.Text
+  dependencies     String?          @db.Text
+  installation     String?          @db.Text
+
+  featured         Boolean          @default(false)
+  featuredOrder    Int              @default(0)
+
+  // Contadores reais (atualizados pelo sistema)
+  downloadCount    Int              @default(0)
+  favoriteCount    Int              @default(0)
+  ratingCount      Int              @default(0)
+  ratingAvg        Float            @default(0)
+
+  publishedAt      DateTime?
+  contentUpdatedAt DateTime         @default(now())
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  images       ProductImage[]
+  versions     ProductVersion[]
+  tags         ProductTag[]
+  downloads    Download[]
+  favorites    Favorite[]
+  reviews      Review[]
+  comments     Comment[]
+  orderItems   OrderItem[]
+  entitlements Entitlement[]
+
+  @@index([status, pricingType])
+  @@index([categoryId])
+  @@index([publishedAt])
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String  @db.VarChar(500)
+  alt       String? @db.VarChar(200)
+  sortOrder Int     @default(0)
+}
+
+model StoredFile {
+  id           String           @id @default(cuid())
+  storageKey   String           @unique @db.VarChar(300)
+  originalName String           @db.VarChar(255)
+  mimeType     String           @db.VarChar(120)
+  size         BigInt
+  sha256       String           @db.VarChar(64)
+  visibility   String           @db.VarChar(10) // "public" | "private"
+  createdAt    DateTime         @default(now())
+  versions     ProductVersion[]
+}
+
+model ProductVersion {
+  id        String      @id @default(cuid())
+  productId String
+  product   Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  version   String      @db.VarChar(40)
+  changelog String?     @db.Text
+  fileId    String?
+  file      StoredFile? @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  isCurrent Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  downloads Download[]
+
+  @@index([productId])
+}
+
+model Download {
+  id        String          @id @default(cuid())
+  productId String
+  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  versionId String?
+  version   ProductVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  userId    String?
+  user      User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  ipHash    String?         @db.VarChar(64)
+  createdAt DateTime        @default(now())
+
+  @@index([productId])
+  @@index([userId])
+}
+
+model Favorite {
+  userId    String
+  productId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, productId])
+}
+
+enum ModerationStatus {
+  VISIBLE
+  HIDDEN
+}
+
+model Review {
+  id        String           @id @default(cuid())
+  productId String
+  product   Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int
+  body      String?          @db.Text
+  status    ModerationStatus @default(VISIBLE)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([productId, userId])
+}
+
+model Comment {
+  id        String           @id @default(cuid())
+  productId String
+  product   Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body      String           @db.Text
+  status    ModerationStatus @default(VISIBLE)
+  createdAt DateTime         @default(now())
+
+  @@index([productId])
+}
+
+// ---------------------------------------------------------------- Pedidos
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELED
+  EXPIRED
+  REFUNDED
+  NEEDS_REVIEW // divergência que precisa de conciliação manual
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  code            String      @unique @db.VarChar(40) // enviado como order_nsu
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  status          OrderStatus @default(PENDING)
+  totalCents      Int
+  currency        String      @default("BRL") @db.VarChar(3)
+  provider        String      @default("INFINITEPAY") @db.VarChar(30)
+  checkoutUrl     String?     @db.VarChar(1000)
+  invoiceSlug     String?     @db.VarChar(120)
+  transactionNsu  String?     @unique @db.VarChar(120)
+  captureMethod   String?     @db.VarChar(30)
+  paidAmountCents Int?
+  installments    Int?
+  receiptUrl      String?     @db.VarChar(1000)
+  customerName    String      @db.VarChar(80)
+  customerEmail   String      @db.VarChar(190)
+  paidAt          DateTime?
+  expiresAt       DateTime?
+  adminNotes      String?     @db.Text
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  items         OrderItem[]
+  events        PaymentEvent[]
+  entitlements  Entitlement[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id             String   @id @default(cuid())
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId      String?
+  product        Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  // "fotografia" do produto no momento da compra
+  titleSnapshot  String   @db.VarChar(120)
+  slugSnapshot   String   @db.VarChar(140)
+  unitPriceCents Int
+  quantity       Int      @default(1)
+  licenseSnapshot String? @db.Text
+}
+
+model PaymentEvent {
+  id        String   @id @default(cuid())
+  orderId   String?
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  source    String   @db.VarChar(20) // WEBHOOK | REDIRECT | CHECK | CREATE | ADMIN
+  outcome   String   @db.VarChar(40)
+  payload   String?  @db.Text
+  error     String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+}
+
+model Entitlement {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderId   String?
+  order     Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([userId, productId])
+}
+
+// ---------------------------------------------------------------- Conteúdo do site
+
+model Setting {
+  key       String   @id @db.VarChar(80)
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+}
+
+model Page {
+  slug        String   @id @db.VarChar(80)
+  title       String   @db.VarChar(150)
+  body        String   @db.Text
+  needsReview Boolean  @default(true) // precisa ser revisada antes da publicação
+  updatedAt   DateTime @updatedAt
+}
+
+enum PostType {
+  NEWS
+  UPDATE
+  TUTORIAL
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  slug        String    @unique @db.VarChar(160)
+  type        PostType  @default(NEWS)
+  title       String    @db.VarChar(160)
+  excerpt     String?   @db.VarChar(400)
+  body        String    @db.Text
+  coverImage  String?   @db.VarChar(500)
+  published   Boolean   @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  title       String    @db.VarChar(160)
+  description String?   @db.Text
+  location    String?   @db.VarChar(160)
+  coverImage  String?   @db.VarChar(500)
+  startsAt    DateTime
+  endsAt      DateTime?
+  published   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+}
+
+model Faq {
+  id        String  @id @default(cuid())
+  question  String  @db.VarChar(300)
+  answer    String  @db.Text
+  sortOrder Int     @default(0)
+  published Boolean @default(true)
+}
+
+// Atividades, profissões, locais e sistemas que realmente existem no servidor
+model ServerFeature {
+  id          String  @id @default(cuid())
+  kind        String  @db.VarChar(20) // ATIVIDADE | PROFISSAO | LOCAL | SISTEMA
+  title       String  @db.VarChar(120)
+  description String? @db.Text
+  imageUrl    String? @db.VarChar(500)
+  sortOrder   Int     @default(0)
+  published   Boolean @default(true)
+}
+
+model ServerMedia {
+  id        String  @id @default(cuid())
+  type      String  @db.VarChar(10) // IMAGE | VIDEO
+  url       String  @db.VarChar(500)
+  caption   String? @db.VarChar(200)
+  sortOrder Int     @default(0)
+}
+
+enum SuggestionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Suggestion {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String           @db.VarChar(150)
+  url         String?          @db.VarChar(500)
+  description String           @db.Text
+  isOwner     Boolean          @default(false) // declarou ser autor/ter permissão
+  status      SuggestionStatus @default(PENDING)
+  adminNotes  String?          @db.Text
+  createdAt   DateTime         @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action    String   @db.VarChar(80)
+  entity    String?  @db.VarChar(40)
+  entityId  String?  @db.VarChar(60)
+  details   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

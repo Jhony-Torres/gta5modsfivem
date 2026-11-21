@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+.env.*.local
+storage/public/*
+storage/private/*
+!storage/public/.gitkeep
+!storage/private/.gitkeep
+backups/
+*.log
+next-env.d.ts
+*.tsbuildinfo

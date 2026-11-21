@@ -1,0 +1,173 @@
+@import "tailwindcss";
+
+/* Identidade Palmas TO: noite do cerrado + sol da capital (âmbar) + águas do Jalapão (turquesa) */
+@theme {
+  --color-bg: #0b0f14;
+  --color-surface: #121820;
+  --color-surface-2: #18202b;
+  --color-surface-3: #212b38;
+  --color-line: #2a3543;
+  --color-text: #e8edf3;
+  --color-muted: #9aa7b6;
+  --color-sun: #f5a524;
+  --color-sun-strong: #ffb938;
+  --color-sun-ink: #1a1203;
+  --color-river: #2cc5b4;
+  --color-ok: #3ecf8e;
+  --color-warn: #f2c94c;
+  --color-bad: #f2665c;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-display-face), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  background: var(--color-bg);
+  scroll-behavior: smooth;
+}
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-sun);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 8px;
+  z-index: 100;
+  background: var(--color-sun);
+  color: var(--color-sun-ink);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+.skip-link:focus {
+  left: 8px;
+}
+
+/* Componentes (Tailwind v4: @utility permite sobrescrever px/py com classes utilitárias) */
+@utility container-pto {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6;
+}
+@utility card {
+  @apply rounded-2xl border border-line bg-surface;
+}
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+}
+@utility btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 bg-sun text-sun-ink hover:bg-sun-strong;
+}
+@utility btn-secondary {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 border border-line bg-surface-2 text-text hover:bg-surface-3;
+}
+@utility btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 text-muted hover:bg-surface-2 hover:text-text;
+}
+@utility btn-danger {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 border border-bad/40 bg-bad/10 text-bad hover:bg-bad/20;
+}
+@utility input {
+  @apply w-full rounded-xl border border-line bg-surface-2 px-3.5 py-2.5 text-sm text-text placeholder:text-muted/70 focus:border-sun focus:outline-none;
+}
+@utility label {
+  @apply mb-1.5 block text-sm font-medium text-text;
+}
+@utility hint {
+  @apply mt-1 text-xs text-muted;
+}
+@utility chip {
+  @apply inline-flex items-center gap-1 rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs text-muted;
+}
+@utility section-title {
+  @apply font-display text-xl font-bold tracking-tight sm:text-2xl;
+}
+@utility admin-table {
+  @apply w-full text-left text-sm;
+  & th {
+    @apply border-b border-line px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+  & td {
+    @apply border-b border-line/60 px-3 py-2.5 align-top;
+  }
+}
+
+/* Conteúdo em Markdown */
+.prose-pto {
+  line-height: 1.7;
+  color: #d5dde6;
+}
+.prose-pto > * + * {
+  margin-top: 0.9em;
+}
+.prose-pto h2,
+.prose-pto h3,
+.prose-pto h4,
+.prose-pto h5 {
+  font-family: var(--font-display);
+  color: var(--color-text);
+  font-weight: 700;
+  margin-top: 1.4em;
+}
+.prose-pto h2 {
+  font-size: 1.4rem;
+}
+.prose-pto h3 {
+  font-size: 1.15rem;
+}
+.prose-pto ul {
+  list-style: disc;
+  padding-left: 1.3em;
+}
+.prose-pto ol {
+  list-style: decimal;
+  padding-left: 1.3em;
+}
+.prose-pto a {
+  color: var(--color-sun);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.prose-pto code {
+  background: var(--color-surface-3);
+  padding: 0.1em 0.35em;
+  border-radius: 6px;
+  font-size: 0.9em;
+}
+.prose-pto pre {
+  background: #070a0e;
+  border: 1px solid var(--color-line);
+  padding: 14px;
+  border-radius: 12px;
+  overflow-x: auto;
+}
+.prose-pto pre code {
+  background: none;
+  padding: 0;
+}
+
+.hero-glow {
+  background:
+    radial-gradient(60% 80% at 85% 0%, rgba(245, 165, 36, 0.22), transparent 60%),
+    radial-gradient(50% 70% at 0% 100%, rgba(44, 197, 180, 0.14), transparent 60%),
+    linear-gradient(180deg, #0f151d 0%, var(--color-bg) 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
