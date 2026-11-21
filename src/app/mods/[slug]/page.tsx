@@ -315,7 +315,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 k="Entrega"
                 v={
                   p.pricingType === "FREE"
-                    ? "Download no site"
+                    ? hasFile
+                      ? "Download no site"
+                      : "Link externo"
                     : p.deliveryType === "SITE_FILE"
                     ? "Download na área Meus produtos"
                     : p.deliveryType === "EXTERNAL"
