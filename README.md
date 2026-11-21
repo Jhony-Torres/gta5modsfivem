@@ -32,7 +32,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 npm ci
 npx prisma migrate deploy
 npm run build
-npm start            # porta 3000 — coloque atrás de Nginx/Proxy com HTTPS
+npm start            # usa a variável PORT (padrão 3000). O build aplica migrações e seed.
 ```
 
 Defina também `TZ=America/Araguaina` no ambiente e `TRUST_PROXY=true` se houver proxy reverso.
