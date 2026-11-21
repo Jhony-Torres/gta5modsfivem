@@ -12,3 +12,4 @@ backups/
 *.log
 next-env.d.ts
 *.tsbuildinfo
+_upload_tmp/
