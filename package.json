@@ -17,11 +17,11 @@
     "build:local": "prisma generate && next build"
   },
   "dependencies": {
-    "@prisma/client": "^6.16.2",
+    "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.2",
-    "next": "^15.5.4",
-    "nodemailer": "^7.0.6",
-    "prisma": "^6.16.2",
+    "next": "^15.5.29",
+    "nodemailer": "^10.6.1",
+    "prisma": "^6.19.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "server-only": "^0.0.1",
@@ -40,12 +40,12 @@
   },
   "allowScripts": {
     "@prisma/client@6.16.2": true,
-    "@prisma/engines@6.16.2": true,
     "@tailwindcss/oxide@4.1.13": true,
     "esbuild@0.25.12": true,
     "esbuild@0.28.2": true,
-    "prisma@6.16.2": true,
-    "sharp@0.34.5": true
+    "sharp@0.34.5": true,
+    "@prisma/engines@6.19.3": true,
+    "prisma@6.19.3": true
   },
   "engines": {
     "node": ">=20"
